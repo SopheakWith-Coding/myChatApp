@@ -55,24 +55,21 @@ export default class CreateChat extends React.Component {
       text: "You're friend on Chatapp",
       createdAt: new Date().getTime(),
     };
-    const smgRef = firestore()
-      .collection('messages')
-      .doc(chatID)
-      .collection('messages');
-    const result = await smgRef.where('readed', '==', true).limit(1).get();
+    const smgRef = firestore().collection('messages');
+    const result = await smgRef.where('roomID', '==', chatID).limit(1).get();
     if (result.empty) {
       smgRef.doc().set({
         createdAt: new Date().getTime(),
         ...welcomeMessage,
         system: true,
-        readed: true,
+        roomID: chatID,
       });
     } else {
       smgRef.doc().update({
         createdAt: new Date().getTime(),
         ...welcomeMessage,
         system: true,
-        readed: true,
+        roomID: chatID,
       });
     }
 
@@ -86,6 +83,7 @@ export default class CreateChat extends React.Component {
       title: userName,
     });
   };
+
   flatListHeader = () => {
     const goToImage = {
       uri:
@@ -117,6 +115,7 @@ export default class CreateChat extends React.Component {
       </TouchableOpacity>
     );
   };
+
   render() {
     const {users} = this.state;
     const {uid} = auth().currentUser;

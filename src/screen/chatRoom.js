@@ -23,9 +23,7 @@ class ChatRoom extends React.Component {
     const {chatID} = this.props.route.params;
     firestore()
       .collection('messages')
-      .doc(chatID)
-      .collection('messages')
-      .orderBy('createdAt', 'desc')
+      .where('roomID', '==', chatID)
       .onSnapshot((querySnapshot) => {
         const messages = querySnapshot.docs.map((doc) => {
           const firebaseData = doc.data();
@@ -60,35 +58,48 @@ class ChatRoom extends React.Component {
     const authUserName = authUserItem.name;
     const authUserProfile = authUserItem.profileImage;
     const {chatID} = this.props.route.params;
-    const {chatIDpre} = this.props.route.params;
     const authUid = auth().currentUser.uid;
     const text = messages[0].text;
-    const welcomeMessage = {
-      text: text,
+    const ownerMessage = {
+      text: `You: ${text}`,
+      createdAt: new Date().getTime(),
+    };
+    const memberMessage = {
+      text: `${authUserItem.name}: ${text}`,
       createdAt: new Date().getTime(),
     };
     firestore()
       .collection('messages')
-      .doc(chatID)
-      .collection('messages')
       .add({
         text,
         createdAt: new Date().getTime(),
+        roomID: chatID,
         user: {
           _id: authUid,
           name: authUserName,
           avatar: authUserProfile,
         },
       });
-    const dbRef = firestore().collection('users');
-    chatIDpre.forEach((element) => {
-      dbRef.doc(element).collection('friends').doc(chatID).update({
-        latestMessage: welcomeMessage,
+    const channelsRef = firestore().collection('channels');
+    channelsRef
+      .where('roomID', '==', chatID)
+      .get()
+      .then(function (querySnapshot) {
+        querySnapshot.forEach(function (doc) {
+          if (doc.data().owner === authUid) {
+            channelsRef.doc(doc.id).update({
+              latestMessage: ownerMessage,
+            });
+          } else {
+            channelsRef.doc(doc.id).update({
+              latestMessage: memberMessage,
+            });
+          }
+        });
       });
-    });
   };
 
-  ChatsSend = (messages) => {
+  ChatsSend = async (messages) => {
     const {authUserItem} = this.props.route.params;
     const authUserName = authUserItem.name;
     const authUserProfile = authUserItem.profileImage;
@@ -109,34 +120,50 @@ class ChatRoom extends React.Component {
     membersID.push(chatterID);
     membersID.push(chateeID);
     membersID.sort();
-    const dbRef = firestore().collection('users');
-    dbRef.doc(chatterID).collection('friends').doc(chatID).set({
-      uuid: chateeID,
-      roomID: chatID,
-      name: userName,
-      profileImage: image,
-      latestMessage: welcomeMessage,
-      members: membersID,
-      creator: chateeID,
-      type: 'Chats',
-    });
-    dbRef.doc(chateeID).collection('friends').doc(chatID).set({
-      uuid: chatterID,
-      roomID: chatID,
-      name: authUserName,
-      profileImage: authImage,
-      latestMessage: welcomeMessage,
-      members: membersID,
-      creator: chatterID,
-      type: 'Chats',
-    });
+    const channelsRef = firestore().collection('channels');
+    const result = await channelsRef
+      .where('roomID', '==', chatID)
+      .limit(1)
+      .get();
+    if (result.empty) {
+      channelsRef.doc().set({
+        uuid: chatterID,
+        roomID: chatID,
+        name: authUserName,
+        profileImage: authImage,
+        latestMessage: welcomeMessage,
+        members: membersID,
+        owner: chateeID,
+        type: 'Chats',
+      });
+      channelsRef.doc().set({
+        uuid: chateeID,
+        roomID: chatID,
+        name: userName,
+        profileImage: image,
+        latestMessage: welcomeMessage,
+        members: membersID,
+        owner: chatterID,
+        type: 'Chats',
+      });
+    } else {
+      channelsRef
+        .where('roomID', '==', chatID)
+        .get()
+        .then(function (querySnapshot) {
+          querySnapshot.forEach(function (doc) {
+            channelsRef.doc(doc.id).update({
+              latestMessage: welcomeMessage,
+            });
+          });
+        });
+    }
     firestore()
-      .collection('messages')
-      .doc(chatID)
       .collection('messages')
       .add({
         text,
         createdAt: new Date().getTime(),
+        roomID: chatID,
         user: {
           _id: authUid,
           name: authUserName,
@@ -174,13 +201,16 @@ class ChatRoom extends React.Component {
   render() {
     const authUid = auth().currentUser.uid;
     const {messages} = this.state;
+    const sortMessage = messages.sort(function (a, b) {
+      return b.createdAt - a.createdAt;
+    });
     const isIphoneX =
       Platform.OS === 'ios' && Dimensions.get('window').height >= 812;
 
     return (
       <GiftedChat
         bottomOffset={isIphoneX ? 48.5 + 30 : 48.5}
-        messages={messages}
+        messages={sortMessage}
         onSend={this.callSendFunction}
         user={{
           _id: authUid,

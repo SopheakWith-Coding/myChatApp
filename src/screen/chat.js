@@ -33,9 +33,8 @@ export default class Chat extends React.Component {
   getFriendUsers() {
     const authUserID = auth().currentUser.uid;
     firestore()
-      .collection('users')
-      .doc(authUserID)
-      .collection('friends')
+      .collection('channels')
+      .where('owner', '==', authUserID)
       .onSnapshot((querySnapshot) => {
         const threads = querySnapshot.docs.map((documentSnapshot) => {
           return {
@@ -110,13 +109,17 @@ export default class Chat extends React.Component {
       </TouchableOpacity>
     );
   };
+
   render() {
     const {users} = this.state;
+    const sortUser = users.sort(function (a, b) {
+      return b.latestMessage.createdAt - a.latestMessage.createdAt;
+    });
 
     return (
       <View style={styles.container}>
         <FlatList
-          data={users}
+          data={sortUser}
           keyExtractor={(item, index) => index.toString()}
           renderItem={({item, index}) => this.renderItem(item, index)}
         />

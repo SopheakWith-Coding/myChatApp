@@ -9,7 +9,6 @@ import {
   Platform,
 } from 'react-native';
 import auth from '@react-native-firebase/auth';
-import database from '@react-native-firebase/database';
 import ImagePicker from 'react-native-image-crop-picker';
 import {TouchableOpacity} from 'react-native-gesture-handler';
 import storage from '@react-native-firebase/storage';

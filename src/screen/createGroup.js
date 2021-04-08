@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
 } from 'react-native';
+import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 
 const screenWidth = Dimensions.get('screen').width;
@@ -26,11 +27,21 @@ export default class CreateGroup extends React.Component {
 
   CreateGroupMessages = () => {
     const {authUserItem} = this.props.route.params;
-    const authID = authUserItem.uuid;
+    const authUserID = auth().currentUser.uid;
+    const placeholderImage =
+      'https://media.istockphoto.com/vectors/default-profile-picture-avatar-photo-placeholder-vector-illustration-vector-id1214428300?b=1&k=6&m=1214428300&s=612x612&w=0&h=kMXMpWVL6mkLu0TN-9MJcEUx1oSWgUq8-Ny6Wszv_ms=';
     const {GroupName} = this.state;
     const {chatIDpre} = this.props.route.params;
     const welcomeMessage = {
-      text: "You're friend on Chatapp",
+      text: 'Your are friend in this group',
+      createdAt: new Date().getTime(),
+    };
+    const membersMessage = {
+      text: `This group is crated by ${authUserItem.name}`,
+      createdAt: new Date().getTime(),
+    };
+    const creatorMessage = {
+      text: 'Your are create this group',
       createdAt: new Date().getTime(),
     };
     const groupRef = firestore()
@@ -39,35 +50,44 @@ export default class CreateGroup extends React.Component {
       .collection('friends')
       .doc();
     const chatID = groupRef.id;
-    const dbRef = firestore().collection('users');
+    const channelsRef = firestore().collection('channels');
     chatIDpre.forEach((element) => {
-      dbRef.doc(element).collection('friends').doc(chatID).set({
-        uuid: element,
-        name: GroupName,
-        profileImage: '',
-        latestMessage: welcomeMessage,
-        members: chatIDpre,
-        creator: authID,
-        type: 'GroupChats',
-        roomID: chatID,
-      });
+      if (element === authUserID) {
+        channelsRef.doc().set({
+          uuid: element,
+          name: GroupName,
+          profileImage: placeholderImage,
+          latestMessage: creatorMessage,
+          members: chatIDpre,
+          owner: element,
+          type: 'GroupChats',
+          roomID: chatID,
+        });
+      } else {
+        channelsRef.doc().set({
+          uuid: element,
+          name: GroupName,
+          profileImage: placeholderImage,
+          latestMessage: membersMessage,
+          members: chatIDpre,
+          owner: element,
+          type: 'GroupChats',
+          roomID: chatID,
+        });
+      }
     });
-    const smgRef = firestore()
-      .collection('messages')
-      .doc(chatID)
-      .collection('messages');
+    const smgRef = firestore().collection('messages');
     smgRef.doc().set({
       createdAt: new Date().getTime(),
       ...welcomeMessage,
       system: true,
-      readed: true,
+      roomID: chatID,
     });
     const {navigation} = this.props;
     const type = 'GroupChats';
     navigation.navigate('ChatRoom', {
       type,
       authUserItem,
-      chatIDpre,
       chatID,
       title: GroupName,
     });
