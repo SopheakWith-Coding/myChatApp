@@ -37,7 +37,9 @@ class Login extends React.Component {
         if (err.code === 'auth/wrong-password') {
           alert('Incorrect Password');
         } else if (err.code === 'auth/invalid-email') {
-          alert('Invalid Email.');
+          alert('Invalid Email');
+        } else if (err.code === 'auth/user-not-found') {
+          alert('User not found');
         }
       });
   };
