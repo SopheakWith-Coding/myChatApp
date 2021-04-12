@@ -33,6 +33,7 @@ export default class newGroupChatScreen extends React.Component {
   renderNextButton = () => {
     const {navigation} = this.props;
     const {selectedUser} = this.state;
+
     navigation.setOptions({
       headerRight: () => (
         <TouchableOpacity
@@ -54,6 +55,7 @@ export default class newGroupChatScreen extends React.Component {
 
   getRemoteAuthUsers = async () => {
     const authUid = auth().currentUser.uid;
+
     firestore()
       .collection('users')
       .where('uuid', '==', authUid)
@@ -70,21 +72,27 @@ export default class newGroupChatScreen extends React.Component {
   };
 
   CreateGroupRoom = () => {
-    const {navigation} = this.props;
-    const {selectedUser} = this.state;
-    const {authUserItem} = this.state;
+    const {selectedUser, authUserItem} = this.state;
     const authUserID = authUserItem.uuid;
-    const chatIDpre = [];
-    chatIDpre.push(authUserID);
+
+    const members_id = [];
+    members_id.push(authUserID);
     selectedUser.map((user) => {
-      chatIDpre.push(user.uuid);
+      members_id.push(user.uuid);
     });
-    navigation.navigate('Create Group', {
+
+    this.navigateToCreateGroup({
       authUserItem,
       selectedUser,
-      chatIDpre,
+      members_id,
     });
   };
+
+  navigateToCreateGroup(data) {
+    const {navigation} = this.props;
+
+    navigation.navigate('Create Group', data);
+  }
 
   getRemoteUsers = async () => {
     const authUid = auth().currentUser.uid;
@@ -103,7 +111,9 @@ export default class newGroupChatScreen extends React.Component {
 
   selectedItem = (item) => {
     const helperArray = this.state.selectedUser;
+
     const index = helperArray.indexOf(item);
+
     if (helperArray.indexOf(item) > -1) {
       helperArray.splice(index, 1);
       this.setState({toggleCheckBox: false});
@@ -120,6 +130,7 @@ export default class newGroupChatScreen extends React.Component {
 
   render() {
     const {users, selectedUser, toggleCheckBox} = this.state;
+
     return (
       <View style={styles.container}>
         {toggleCheckBox ? (

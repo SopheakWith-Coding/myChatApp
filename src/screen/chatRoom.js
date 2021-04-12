@@ -20,10 +20,11 @@ class ChatRoom extends React.Component {
   }
 
   fetchChatMessages = () => {
-    const {chatID} = this.props.route.params;
+    const {chat_id} = this.props.route.params;
+
     firestore()
       .collection('messages')
-      .where('roomID', '==', chatID)
+      .where('room_id', '==', chat_id)
       .onSnapshot((querySnapshot) => {
         const messages = querySnapshot.docs.map((doc) => {
           const firebaseData = doc.data();
@@ -47,6 +48,7 @@ class ChatRoom extends React.Component {
 
   header = () => {
     const {navigation} = this.props;
+
     navigation.setOptions({
       headerBackTitleVisible: false,
       headerTitleAlign: 'left',
@@ -54,35 +56,47 @@ class ChatRoom extends React.Component {
   };
 
   GroupSend = (messages) => {
-    const {authUserItem} = this.props.route.params;
+    const text = messages[0].text;
+    this.createGroupMessages(text);
+    this.updateGroupChannels(text);
+  };
+
+  createGroupMessages(text) {
+    const {authUserItem, chat_id} = this.props.route.params;
+    const authUid = auth().currentUser.uid;
     const authUserName = authUserItem.name;
     const authUserProfile = authUserItem.profileImage;
-    const {chatID} = this.props.route.params;
-    const authUid = auth().currentUser.uid;
-    const text = messages[0].text;
-    const ownerMessage = {
-      text: `You: ${text}`,
-      createdAt: new Date().getTime(),
-    };
-    const memberMessage = {
-      text: `${authUserItem.name}: ${text}`,
-      createdAt: new Date().getTime(),
-    };
     firestore()
       .collection('messages')
       .add({
         text,
         createdAt: new Date().getTime(),
-        roomID: chatID,
+        room_id: chat_id,
         user: {
           _id: authUid,
           name: authUserName,
           avatar: authUserProfile,
         },
       });
+  }
+
+  updateGroupChannels(text) {
+    const {authUserItem, chat_id} = this.props.route.params;
+    const authUid = auth().currentUser.uid;
+
+    const ownerMessage = {
+      text: `You: ${text}`,
+      createdAt: new Date().getTime(),
+    };
+
+    const memberMessage = {
+      text: `${authUserItem.name}: ${text}`,
+      createdAt: new Date().getTime(),
+    };
+
     const channelsRef = firestore().collection('channels');
     channelsRef
-      .where('roomID', '==', chatID)
+      .where('room_id', '==', chat_id)
       .get()
       .then(function (querySnapshot) {
         querySnapshot.forEach(function (doc) {
@@ -97,58 +111,63 @@ class ChatRoom extends React.Component {
           }
         });
       });
+  }
+
+  ChatsSend = async (call, messages) => {
+    const {item} = this.props.route.params;
+    const members_id = call(item);
+    const text = messages[0].text;
+
+    this.createIndividualChannels(text, members_id);
+    this.createIndividualMessages(text);
   };
 
-  ChatsSend = async (messages) => {
-    const {authUserItem} = this.props.route.params;
+  createIndividualChannels = async (text, members_id) => {
+    const {authUserItem, chat_id, item} = this.props.route.params;
+
     const authUserName = authUserItem.name;
     const authUserProfile = authUserItem.profileImage;
-    const {chatID} = this.props.route.params;
-    const {item} = this.props.route.params;
+
+    const sender_id = auth().currentUser.uid;
+
+    const receiver_id = item.uuid;
+    const profile = item.profileImage;
     const userName = `${item.name}`;
-    const authUid = auth().currentUser.uid;
-    const chatterID = auth().currentUser.uid;
-    const chateeID = item.uuid;
-    const text = messages[0].text;
+
     const welcomeMessage = {
       text: text,
       createdAt: new Date().getTime(),
     };
-    const image = item.profileImage;
-    const authImage = authUserItem.profileImage;
-    const membersID = [];
-    membersID.push(chatterID);
-    membersID.push(chateeID);
-    membersID.sort();
+
     const channelsRef = firestore().collection('channels');
     const result = await channelsRef
-      .where('roomID', '==', chatID)
+      .where('room_id', '==', chat_id)
       .limit(1)
       .get();
     if (result.empty) {
       channelsRef.doc().set({
-        uuid: chatterID,
-        roomID: chatID,
+        uuid: sender_id,
+        room_id: chat_id,
         name: authUserName,
-        profileImage: authImage,
+        profileImage: authUserProfile,
         latestMessage: welcomeMessage,
-        members: membersID,
-        owner: chateeID,
+        members: members_id,
+        owner: receiver_id,
         type: 'Chats',
       });
       channelsRef.doc().set({
-        uuid: chateeID,
-        roomID: chatID,
+        uuid: receiver_id,
+        room_id: chat_id,
         name: userName,
-        profileImage: image,
+        profileImage: profile,
         latestMessage: welcomeMessage,
-        members: membersID,
-        owner: chatterID,
+        members: members_id,
+        owner: sender_id,
         type: 'Chats',
       });
     } else {
       channelsRef
-        .where('roomID', '==', chatID)
+        .where('room_id', '==', chat_id)
         .get()
         .then(function (querySnapshot) {
           querySnapshot.forEach(function (doc) {
@@ -158,29 +177,52 @@ class ChatRoom extends React.Component {
           });
         });
     }
-    firestore()
-      .collection('messages')
-      .add({
-        text,
-        createdAt: new Date().getTime(),
-        roomID: chatID,
-        user: {
-          _id: authUid,
-          name: authUserName,
-          avatar: authUserProfile,
-        },
-      });
+  };
+
+  members_id(item) {
+    const sender_id = auth().currentUser.uid;
+    const receiver_id = item.uuid;
+
+    const members_id = [];
+
+    members_id.push(sender_id);
+    members_id.push(receiver_id);
+    return members_id.sort();
+  }
+
+  createIndividualMessages = (text) => {
+    const {authUserItem, chat_id} = this.props.route.params;
+
+    const sender_id = auth().currentUser.uid;
+
+    const authUserName = authUserItem.name;
+    const authUserProfile = authUserItem.profileImage;
+
+    const smgRef = firestore().collection('messages');
+
+    smgRef.add({
+      text,
+      createdAt: new Date().getTime(),
+      room_id: chat_id,
+      user: {
+        _id: sender_id,
+        name: authUserName,
+        avatar: authUserProfile,
+      },
+    });
   };
 
   getTypeChat = () => {
     const {type} = this.props.route.params;
+
     this.setState({Type: type});
   };
 
   callSendFunction = (messages) => {
     const {Type} = this.state;
+
     if (Type == 'Chats') {
-      this.ChatsSend(messages);
+      this.ChatsSend(this.members_id, messages);
     } else {
       this.GroupSend(messages);
     }

@@ -26,42 +26,49 @@ export default class CreateGroup extends React.Component {
   }
 
   CreateGroupMessages = () => {
-    const {authUserItem} = this.props.route.params;
-    const authUserID = auth().currentUser.uid;
-    const placeholderImage =
-      'https://media.istockphoto.com/vectors/default-profile-picture-avatar-photo-placeholder-vector-illustration-vector-id1214428300?b=1&k=6&m=1214428300&s=612x612&w=0&h=kMXMpWVL6mkLu0TN-9MJcEUx1oSWgUq8-Ny6Wszv_ms=';
-    const {GroupName} = this.state;
-    const {chatIDpre} = this.props.route.params;
-    const welcomeMessage = {
-      text: 'Your are friend in this group',
-      createdAt: new Date().getTime(),
-    };
-    const membersMessage = {
-      text: `This group is crated by ${authUserItem.name}`,
-      createdAt: new Date().getTime(),
-    };
-    const creatorMessage = {
-      text: 'Your are create this group',
-      createdAt: new Date().getTime(),
-    };
     const groupRef = firestore()
       .collection('users')
       .doc()
       .collection('friends')
       .doc();
-    const chatID = groupRef.id;
+    const chat_id = groupRef.id;
+
+    this.createdGroupChannels(chat_id);
+    this.createFirstGroupMessages(chat_id);
+    this.navigateToChatRoom(chat_id);
+  };
+
+  createdGroupChannels(chat_id) {
+    const {authUserItem, members_id} = this.props.route.params;
+    const {GroupName} = this.state;
+
+    const authUserID = auth().currentUser.uid;
+
+    const membersMessage = {
+      text: `This group is crated by ${authUserItem.name}`,
+      createdAt: new Date().getTime(),
+    };
+
+    const creatorMessage = {
+      text: 'Your are create this group',
+      createdAt: new Date().getTime(),
+    };
+
+    const placeholderImage =
+      'https://media.istockphoto.com/vectors/default-profile-picture-avatar-photo-placeholder-vector-illustration-vector-id1214428300?b=1&k=6&m=1214428300&s=612x612&w=0&h=kMXMpWVL6mkLu0TN-9MJcEUx1oSWgUq8-Ny6Wszv_ms=';
+
     const channelsRef = firestore().collection('channels');
-    chatIDpre.forEach((element) => {
+    members_id.forEach((element) => {
       if (element === authUserID) {
         channelsRef.doc().set({
           uuid: element,
           name: GroupName,
           profileImage: placeholderImage,
           latestMessage: creatorMessage,
-          members: chatIDpre,
+          members: members_id,
           owner: element,
           type: 'GroupChats',
-          roomID: chatID,
+          room_id: chat_id,
         });
       } else {
         channelsRef.doc().set({
@@ -69,29 +76,43 @@ export default class CreateGroup extends React.Component {
           name: GroupName,
           profileImage: placeholderImage,
           latestMessage: membersMessage,
-          members: chatIDpre,
+          members: members_id,
           owner: element,
           type: 'GroupChats',
-          roomID: chatID,
+          room_id: chat_id,
         });
       }
     });
+  }
+
+  createFirstGroupMessages(chat_id) {
+    const welcomeMessage = {
+      text: 'Your are friend in this group',
+      createdAt: new Date().getTime(),
+    };
+
     const smgRef = firestore().collection('messages');
+
     smgRef.doc().set({
       createdAt: new Date().getTime(),
       ...welcomeMessage,
       system: true,
-      roomID: chatID,
+      room_id: chat_id,
     });
+  }
+
+  navigateToChatRoom(chat_id) {
+    const {authUserItem} = this.props.route.params;
+    const {GroupName} = this.state;
     const {navigation} = this.props;
     const type = 'GroupChats';
     navigation.navigate('ChatRoom', {
       type,
       authUserItem,
-      chatID,
+      chat_id,
       title: GroupName,
     });
-  };
+  }
 
   header = () => {
     const {navigation} = this.props;

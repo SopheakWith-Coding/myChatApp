@@ -32,6 +32,7 @@ export default class Chat extends React.Component {
 
   getFriendUsers() {
     const authUserID = auth().currentUser.uid;
+
     firestore()
       .collection('channels')
       .where('owner', '==', authUserID)
@@ -50,10 +51,11 @@ export default class Chat extends React.Component {
   }
 
   getAuthUserItem = async () => {
-    const authUid = auth().currentUser.uid;
+    const authUserID = auth().currentUser.uid;
+
     firestore()
       .collection('users')
-      .where('uuid', '==', authUid)
+      .where('uuid', '==', authUserID)
       .onSnapshot((querySnapshot) => {
         const threads = querySnapshot.docs.map((documentSnapshot) => {
           return {
@@ -66,22 +68,24 @@ export default class Chat extends React.Component {
       });
   };
 
-  renderItem = (item, index) => {
+  navigateToChatRoom(data) {
     const {navigation} = this.props;
+    navigation.navigate('ChatRoom', data);
+  }
+
+  renderItem = (item) => {
     const {authUserItem} = this.state;
     const type = item.type;
-    const chatIDpre = item.members;
-    const chatID = item.roomID;
+    const chat_id = item.room_id;
     const image = item.profileImage;
 
     return (
       <TouchableOpacity
         onPress={() =>
-          navigation.navigate('ChatRoom', {
+          this.navigateToChatRoom({
             type,
             item,
-            chatIDpre,
-            chatID,
+            chat_id,
             authUserItem,
             title: `${item.name}`,
           })
@@ -121,7 +125,7 @@ export default class Chat extends React.Component {
         <FlatList
           data={sortUser}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({item, index}) => this.renderItem(item, index)}
+          renderItem={({item}) => this.renderItem(item)}
         />
       </View>
     );

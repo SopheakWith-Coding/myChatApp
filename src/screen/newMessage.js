@@ -38,51 +38,70 @@ export default class CreateChat extends React.Component {
       });
   };
 
-  chatID = (item) => {
-    const chatterID = auth().currentUser.uid;
-    const chateeID = item.uuid;
-    const chatIDpre = [];
-    chatIDpre.push(chatterID);
-    chatIDpre.push(chateeID);
-    chatIDpre.sort();
-    return chatIDpre.join('');
+  chat_id = (item) => {
+    const sender_id = auth().currentUser.uid;
+    const receiver_id = item.uuid;
+
+    const members_id = [];
+    members_id.push(sender_id);
+    members_id.push(receiver_id);
+    members_id.sort();
+
+    return members_id.join('');
   };
 
   CreateChatRoom = async (call, item, authUserItem) => {
     const userName = `${item.name}`;
-    const chatID = call(item);
+    const chat_id = call(item);
+    const type = 'Chats';
+
+    this.createFirstIndividualMessages(chat_id);
+    this.navigateToChatRoom(type, item, chat_id, authUserItem, userName);
+  };
+
+  createFirstIndividualMessages = async (chat_id) => {
     const welcomeMessage = {
-      text: "You're friend on Chatapp",
+      text: "You're friend on chat app",
       createdAt: new Date().getTime(),
     };
+
     const smgRef = firestore().collection('messages');
-    const result = await smgRef.where('roomID', '==', chatID).limit(1).get();
+
+    const result = await smgRef.where('room_id', '==', chat_id).limit(1).get();
+
     if (result.empty) {
       smgRef.doc().set({
         createdAt: new Date().getTime(),
         ...welcomeMessage,
         system: true,
-        roomID: chatID,
+        room_id: chat_id,
       });
     } else {
       smgRef.doc().update({
         createdAt: new Date().getTime(),
         ...welcomeMessage,
         system: true,
-        roomID: chatID,
+        room_id: chat_id,
       });
     }
+  };
 
+  navigateToChatRoom(type, item, chat_id, authUserItem, userName) {
     const {navigation} = this.props;
-    const type = 'Chats';
+
     navigation.navigate('ChatRoom', {
       type,
       item,
-      chatID,
+      chat_id,
       authUserItem,
       title: userName,
     });
-  };
+  }
+
+  navigateToNewGroup() {
+    const {navigation} = this.props;
+    navigation.navigate('New  Group');
+  }
 
   flatListHeader = () => {
     const goToImage = {
@@ -92,9 +111,9 @@ export default class CreateChat extends React.Component {
     const groupImage = {
       uri: 'https://static.thenounproject.com/png/58999-200.png',
     };
-    const {navigation} = this.props;
+
     return (
-      <TouchableOpacity onPress={() => navigation.navigate('New  Group')}>
+      <TouchableOpacity onPress={() => this.navigateToNewGroup()}>
         <View style={styles.SubContainer}>
           <View style={styles.GroupImageWrapper}>
             <Image
@@ -121,6 +140,7 @@ export default class CreateChat extends React.Component {
     const {uid} = auth().currentUser;
     const filterAuthUser = users.filter((val) => val.uuid === uid);
     const filterUser = users.filter((val) => val.uuid !== uid);
+
     return (
       <View style={styles.container}>
         <FlatList
@@ -135,7 +155,7 @@ export default class CreateChat extends React.Component {
                   <TouchableOpacity
                     key
                     onPress={() =>
-                      this.CreateChatRoom(this.chatID, item, authUserItem)
+                      this.CreateChatRoom(this.chat_id, item, authUserItem)
                     }>
                     <View style={styles.SubContainer}>
                       <View style={styles.imageWrapper}>
