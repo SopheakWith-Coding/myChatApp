@@ -8,15 +8,15 @@ import auth from '@react-native-firebase/auth';
 import {HeaderBackButton} from '@react-navigation/stack';
 import firestore from '@react-native-firebase/firestore';
 
-import LoginScreen from './src/screen/login';
-import SignUpScreen from './src/screen/signup';
-import ChatRoom from './src/screen/chatRoom';
-import createChatScreen from './src/screen/newMessage';
-import newGroupChatScreen from './src/screen/newGroup';
-import createGroupChatScreen from './src/screen/createGroup';
+import LoginScreen from './src/screen/logins';
+import SignUpScreen from './src/screen/signups';
+import ChatRoom from './src/screen/chatRooms';
+import createChatScreen from './src/screen/newMessages';
+import newGroupChatScreen from './src/screen/newGroups';
+import createGroupChatScreen from './src/screen/createGroups';
 
-import ChatScreen from './src/screen/chat';
-import ProfileScreen from './src/screen/profile';
+import ChatScreen from './src/screen/chats';
+import ProfileScreen from './src/screen/profiles';
 
 const Stack = createStackNavigator();
 

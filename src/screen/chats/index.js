@@ -1,18 +1,8 @@
 import React from 'react';
-import {
-  StyleSheet,
-  Dimensions,
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
+import {View, FlatList, ActivityIndicator} from 'react-native';
 import auth from '@react-native-firebase/auth';
-import moment from 'moment';
 import firestore from '@react-native-firebase/firestore';
-
-const screenWidth = Dimensions.get('window').width;
+import Card from './components/userList';
 
 export default class Chat extends React.Component {
   constructor(props) {
@@ -32,7 +22,6 @@ export default class Chat extends React.Component {
 
   getFriendUsers() {
     const authUserID = auth().currentUser.uid;
-
     firestore()
       .collection('channels')
       .where('owner', '==', authUserID)
@@ -47,6 +36,7 @@ export default class Chat extends React.Component {
           };
         });
         this.setState({users: threads});
+        this.setState({loading: true});
       });
   }
 
@@ -70,6 +60,7 @@ export default class Chat extends React.Component {
 
   navigateToChatRoom(data) {
     const {navigation} = this.props;
+
     navigation.navigate('ChatRoom', data);
   }
 
@@ -80,7 +71,7 @@ export default class Chat extends React.Component {
     const image = item.profileImage;
 
     return (
-      <TouchableOpacity
+      <Card
         onPress={() =>
           this.navigateToChatRoom({
             type,
@@ -89,82 +80,32 @@ export default class Chat extends React.Component {
             authUserItem,
             title: `${item.name}`,
           })
-        }>
-        <View style={styles.SubContainer}>
-          <View style={styles.imageWrapper}>
-            <Image
-              style={{width: 50, height: 50, borderRadius: 50}}
-              source={{uri: image}}
-            />
-          </View>
-
-          <View style={styles.TextWrapper}>
-            <Text style={styles.TextTitle}>{item.name}</Text>
-            <Text style={styles.TextSubTitle}>
-              {item.latestMessage.text.slice(0, 90)}
-            </Text>
-          </View>
-          <View style={styles.TimeWrapper}>
-            <Text>
-              {moment(item.latestMessage.createdAt).format('hh:mm A')}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+        }
+        image={image}
+        item={item}
+      />
     );
   };
 
   render() {
-    const {users} = this.state;
+    const {users, loading} = this.state;
+    console.log(loading);
     const sortUser = users.sort(function (a, b) {
       return b.latestMessage.createdAt - a.latestMessage.createdAt;
     });
 
     return (
-      <View style={styles.container}>
-        <FlatList
-          data={sortUser}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({item}) => this.renderItem(item)}
-        />
+      <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
+        {loading ? (
+          <FlatList
+            data={sortUser}
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({item}) => this.renderItem(item)}
+          />
+        ) : (
+          <ActivityIndicator size="large" />
+        )}
       </View>
     );
   }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  SubContainer: {
-    height: 80,
-    width: screenWidth,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: 'white',
-  },
-  imageWrapper: {
-    marginVertical: 1,
-    marginLeft: 15,
-    justifyContent: 'center',
-  },
-  TextWrapper: {
-    marginVertical: 1,
-    justifyContent: 'center',
-    width: screenWidth / 2 + 35,
-  },
-  TimeWrapper: {
-    marginVertical: 1,
-    justifyContent: 'center',
-    marginRight: 15,
-    width: screenWidth / 8 + 20,
-  },
-  TextTitle: {
-    fontSize: 18,
-  },
-  TextSubTitle: {
-    fontSize: 14,
-  },
-});

@@ -11,43 +11,19 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import auth from '@react-native-firebase/auth';
 
 const screenWidth = Dimensions.get('screen').width;
-class Login extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      email: '',
-      password: '',
-      loading: false,
-    };
-  }
 
-  onLogin = () => {
-    const {email, password} = this.state;
-    this.setState({loading: true});
-    auth()
-      .signInWithEmailAndPassword(email, password)
-      .then(() => {
-        this.setState({loading: false});
-      })
-      .catch((err) => {
-        this.setState({loading: false});
-        if (err.code === 'auth/wrong-password') {
-          alert('Incorrect Password');
-        } else if (err.code === 'auth/invalid-email') {
-          alert('Invalid Email');
-        } else if (err.code === 'auth/user-not-found') {
-          alert('User not found');
-        }
-      });
-  };
-
+export default class LoginForm extends React.Component {
   render() {
-    const {email, password, loading} = this.state;
-    const {navigation} = this.props;
-
+    const {
+      navigation,
+      loading,
+      emailOnChangeText,
+      passwordOnChangeText,
+      disabled,
+      onPress,
+    } = this.props;
     return (
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -68,21 +44,21 @@ class Login extends React.Component {
             placeholder="Enter your email"
             autoCapitalize="none"
             autoCorrect={false}
-            onChangeText={(email) => this.setState({email: email})}
+            onChangeText={emailOnChangeText}
           />
           <TextInput
             style={styles.TextInput}
             placeholder="Password"
             secureTextEntry
-            onChangeText={(password) => this.setState({password: password})}
+            onChangeText={passwordOnChangeText}
           />
           <View style={styles.ViewButtonWrapper}>
             <View style={styles.ButtonWrapper}>
               <TouchableOpacity
                 activeOpacity={0.5}
                 style={styles.ButtonTouchableOpacity}
-                disabled={email.length === 0 || password.length === 0}
-                onPress={this.onLogin}>
+                disabled={disabled}
+                onPress={onPress}>
                 {loading ? (
                   <ActivityIndicator size="small" />
                 ) : (
@@ -151,4 +127,3 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
-export default Login;

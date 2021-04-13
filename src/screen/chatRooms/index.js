@@ -66,6 +66,7 @@ class ChatRoom extends React.Component {
     const authUid = auth().currentUser.uid;
     const authUserName = authUserItem.name;
     const authUserProfile = authUserItem.profileImage;
+
     firestore()
       .collection('messages')
       .add({
@@ -243,9 +244,11 @@ class ChatRoom extends React.Component {
   render() {
     const authUid = auth().currentUser.uid;
     const {messages} = this.state;
+
     const sortMessage = messages.sort(function (a, b) {
       return b.createdAt - a.createdAt;
     });
+
     const isIphoneX =
       Platform.OS === 'ios' && Dimensions.get('window').height >= 812;
 
